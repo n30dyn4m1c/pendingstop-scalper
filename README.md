@@ -11,36 +11,22 @@ A MetaTrader 5 Expert Advisor that keeps one **Buy Stop** above price and one **
 3. Open the file and compile it (F7).
 4. Attach the EA to a chart, for example XAUUSD M5, and turn on Algo Trading.
 
-## Inputs
+## Inputs (v2.00)
 
-| Input | Default | Notes |
+| Group | Key inputs | Notes |
 |---|---|---|
-| `InpLotSize` | 0.1 | Rounded to the symbol's volume step. Rejected if below the symbol's minimum lot. |
-| `InpDistancePoints` | 80 | Distance from Ask (Buy Stop) or Bid (Sell Stop) to the entry. |
-| `InpSL_Points` / `InpTP_Points` | 150 / 250 | Measured from the entry price. Set TP to 0 for no TP. |
-| `InpMagic` | 20251125 | Use a different value on each chart. |
-| `InpMaxOpenPositions` | 2 | Cap on **open positions plus pending orders** combined. |
-| `InpPendingTimeoutMin` | 15 | Checked on every tick. 0 turns it off. |
-| `InpOnNewBarOnly` | true | Places new pendings at most once per bar. |
-| `InpMaxSpreadPoints` | 50 | 0 turns the spread filter off. |
-| `InpStartHour` / `InpEndHour` | 01:00 / 23:00 | Server time. Overnight windows such as 22:00 to 06:00 work. |
-| `InpDeleteOutsideHours` | true | Cancels this EA's pendings outside the trading window. |
+| Position size | `InpLotMode`, `InpLotSize`, `InpRiskPercent`, `InpMaxLot` | Fixed lot or % of balance risked from entry to SL. Lots are floored to the volume step and never rounded up. |
+| Distances | `InpDistanceMode`, `InpDistancePoints`, `InpSL_Points`, `InpTP_Points`, `InpATR*`, `InpStopsBufferPoints` | Fixed points or ATR multiples (from the last closed bar). Each value is raised to the larger of the stops and freeze levels, plus the buffer. If the broker reports 0, the spread is used as the minimum instead. |
+| Order management | `InpMaxOpenPositions`, `InpPendingTimeoutMin`, `InpOnNewBarOnly`, `InpCancelOnNewBar`, `InpOCO`, `InpRetryCooldownSec`, `InpDeletePendingsOnRemove` | The exposure cap counts positions plus pending orders. The timeout is checked every tick, and the broker's own expiry is also set as a backup when the symbol supports it. |
+| Trade management | `InpBreakevenTriggerPts`, `InpBreakevenLockPts`, `InpTrailStartPoints`, `InpTrailDistancePoints`, `InpTrailStepPoints` | Off by default. Stop moves respect the stops and freeze levels. |
+| Daily risk | `InpMaxDailyLossMoney`, `InpMaxDailyLossPercent`, `InpCloseOnDailyLoss`, `InpMaxTradesPerDay` | Uses server days. Counts only this EA's deals (same magic and symbol), including swap, commission and fees. |
+| Filters | `InpMaxSpreadPoints`, `InpStartHour`, `InpEndHour`, `InpDeleteOutsideHours` | The spread comes from the live tick. Trading windows can cross midnight. |
 
-**Points depend on your broker.** On a gold symbol with 2 digits, 1 point is 0.01, so 80 points is $0.80. With 3 digits, 1 point is 0.001. The EA prints the symbol's point size and stops level to the Experts log when it starts. Check those values and scale the inputs to match.
+With the default inputs the behavior matches v1: fixed 0.1 lots, 80/150/250 points, 15-minute timeout, and all new features turned off.
 
-Rough starting ranges for XAUUSD M5 with 2 digits: distance 50 to 150, SL 100 to 300, TP 150 to 400. Set the max spread a little above your broker's normal gold spread.
+**Points depend on your broker.** On a gold symbol with 2 digits, 1 point is 0.01. When the EA starts, it writes the point size, tick size, stops level, freeze level, volume step and allowed expiration modes to the Experts log. Check those values first.
 
-## Changes from the original draft
-
-- Prices are rounded to the symbol's tick size, and lots to its volume step, so the broker doesn't reject orders as invalid.
-- The entry distance, SL and TP are raised to the broker's minimum stops level when they are set too small.
-- The position limit counts pending orders too. Before, both pendings could fill and go past the limit.
-- The pending timeout is checked on every tick, not only when a new bar opens.
-- A bar is only marked as used once the spread and time filters pass. Before, a wide spread at the bar open skipped the whole bar.
-- The time window is parsed properly and works across midnight.
-- Failed orders log the broker's return code.
-- The warning prints on netting accounts, where a filled Buy Stop and Sell Stop cancel each other out. A hedging account is recommended.
-- Removed `#property strict`, which only exists in MQL4.
+Use a **hedging** account. On a netting account, a filled Buy Stop and Sell Stop cancel each other out. If you have to use netting, turn on `InpOCO`.
 
 ## Ideas for later
 
